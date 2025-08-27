@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Como parar os descontos do consignado e recuperar sua renda</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/main.js"></script>
+    
+    <!-- Setup da LP (snippet) -->
+    <script>
+    (function(){
+      const FUNCTIONS_BASE='https://gwttirszzndoptkxyqhk.supabase.co/functions/v1';
+      const LP_LEAD_URL=FUNCTIONS_BASE+'/landing-page-webhook';
+      const LP_EVENT_URL=FUNCTIONS_BASE+'/landing-page-webhook/event';
+
+      const ts=()=>Date.now(); const t0=ts(); const minOnPage=()=>Math.max(0,Math.floor((ts()-t0)/60000));
+      const getCookie=n=>('; '+document.cookie).split('; '+n+'=').pop()?.split(';').shift();
+      const setCookie=(n,v,d=365)=>{const e=new Date();e.setTime(e.getTime()+d*24*60*60*1e3);document.cookie=n+'='+v+';expires='+e.toUTCString()+';path=/;SameSite=Lax'};
+      const params=Object.fromEntries(new URLSearchParams(location.search));
+      function uuid(){return crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16)})}
+      function externalId(){let id=localStorage.getItem('crm_ext_id');if(!id){id=uuid();localStorage.setItem('crm_ext_id',id)}return id}
+      (function(){if(!getCookie('_fbc')&&params.fbclid){const fbc='fb.1.'+Math.floor(ts()/1000)+'.'+params.fbclid;setCookie('_fbc',fbc)}})();
+
+      function pick(form,names){for(const n of names){const el=form.querySelector('[name="'+n+'"]')||form.querySelector('#'+n);if(el)return(el.value||'').trim()}return''}
+
+      function sendLead({name,email,phone,company,formId,extra={}}){
+        const body={
+          name,email,phone,company,
+          form_id:formId||'lp_form',
+          landing_page_url:location.href,
+          custom_fields:{ external_id:externalId(), referrer:document.referrer||undefined, page_title:document.title||undefined, ...params, ...extra },
+          fbc:getCookie('_fbc')||undefined,
+          fbp:getCookie('_fbp')||undefined,
+          event_time:ts()
+        };
+        const blob=new Blob([JSON.stringify(body)],{type:'application/json'});
+        navigator.sendBeacon?.(LP_LEAD_URL,blob) || fetch(LP_LEAD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true});
+      }
+
+      function sendEvent(event_type,extras={}){
+        const body={ event_type, email:localStorage.getItem('last_lead_email')||undefined, ...extras };
+        const blob=new Blob([JSON.stringify(body)],{type:'application/json'});
+        navigator.sendBeacon?.(LP_EVENT_URL,blob) || fetch(LP_EVENT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true});
+      }
+
+      document.addEventListener('submit',e=>{
+        const form=e.target.closest('form[data-crm-form]'); if(!form) return;
+        const name=pick(form,['name','nome','full_name','fullname']);
+        const email=pick(form,['email','e-mail','email_address']);
+        const phone=pick(form,['phone','telefone','whatsapp','celular','phone_number']);
+        const company=pick(form,['company','empresa']);
+        if(email) localStorage.setItem('last_lead_email',email);
+        sendLead({ name,email,phone,company, formId:form.id||form.name });
+        sendEvent('button_click');
+      },true);
+
+      document.addEventListener('click',e=>{
+        const el=e.target.closest('[data-crm-whatsapp], a[href*="wa.me/"], a[href*="api.whatsapp.com/"], a[href*="web.whatsapp.com/send"]');
+        if(!el) return;
+        sendEvent('whatsapp_click',{ time_to_contact:String(minOnPage()) });
+      },true);
+
+      window.MeuNomeCRM={ sendLead, sendEvent, setEmail(email){ if(email) localStorage.setItem('last_lead_email',email) } };
+    })();
+    </script>
+  </body>
+</html>
