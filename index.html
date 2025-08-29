@@ -37,14 +37,26 @@
           fbp:getCookie('_fbp')||undefined,
           event_time:ts()
         };
-        const blob=new Blob([JSON.stringify(body)],{type:'application/json'});
-        navigator.sendBeacon?.(LP_LEAD_URL,blob) || fetch(LP_LEAD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true});
+        return fetch(LP_LEAD_URL,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(body),
+          mode:'cors',
+          credentials:'omit',
+          keepalive:true
+        });
       }
 
       function sendEvent(event_type,extras={}){
         const body={ event_type, email:localStorage.getItem('last_lead_email')||undefined, ...extras };
-        const blob=new Blob([JSON.stringify(body)],{type:'application/json'});
-        navigator.sendBeacon?.(LP_EVENT_URL,blob) || fetch(LP_EVENT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true});
+        return fetch(LP_EVENT_URL,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(body),
+          mode:'cors',
+          credentials:'omit',
+          keepalive:true
+        });
       }
 
       document.addEventListener('submit',e=>{
