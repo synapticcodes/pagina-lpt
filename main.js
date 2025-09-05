@@ -727,7 +727,7 @@ function showAlreadySubmittedMessage() {
       phone: phone
     };
     
-    // PASSO 2: Enviar evento form_filled após submit (lead já foi enviado na validação)
+    // PASSO 2: Enviar evento form_filled após submit (status permanece new)
     if (window.MeuNomeCRM && window.MeuNomeCRM.sendEvent) {
       window.MeuNomeCRM.sendEvent('form_filled');
     }

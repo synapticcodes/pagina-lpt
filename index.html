@@ -67,7 +67,10 @@
         const body={ eventType, lead_id:localStorage.getItem('lead_id')||undefined, email:localStorage.getItem('last_lead_email')||undefined, ...extras };
         return fetch(LP_EVENT_URL,{
           method:'POST',
-          headers:{'Content-Type':'application/json'},
+          headers:{
+            'Content-Type':'application/json',
+            'Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dHRpcnN6em5kb3B0a3h5cWhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM0Njk0NTAsImV4cCI6MjA2OTA0NTQ1MH0.30YDZBzb5jAT1Keklo1fVOY0tfE2IeHL4LPSaKd7MPA'
+          },
           body:JSON.stringify(body),
           mode:'cors',
           credentials:'omit',
