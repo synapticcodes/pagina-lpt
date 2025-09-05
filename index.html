@@ -42,11 +42,12 @@
 
       function pick(form,names){for(const n of names){const el=form.querySelector('[name="'+n+'"]')||form.querySelector('#'+n);if(el)return(el.value||'').trim()}return''}
 
-      function sendLead({name,email,phone,company,formId,extra={}}){
+      function sendLead({name,email,phone,company,formId,phoneValidated=false,extra={}}){
         const body={
           name,email,phone,company,
           form_id:formId||'lp_form',
           landing_page_url:location.href,
+          phone_validated: phoneValidated || undefined,
           custom_fields:{ external_id:externalId(), referrer:document.referrer||undefined, page_title:document.title||undefined, ...params, ...extra },
           fbc:getCookie('_fbc')||undefined,
           fbp:getCookie('_fbp')||undefined,
@@ -62,8 +63,8 @@
         });
       }
 
-      function sendEvent(event_type,extras={}){
-        const body={ event_type, email:localStorage.getItem('last_lead_email')||undefined, ...extras };
+      function sendEvent(eventType,extras={}){
+        const body={ eventType, lead_id:localStorage.getItem('lead_id')||undefined, email:localStorage.getItem('last_lead_email')||undefined, ...extras };
         return fetch(LP_EVENT_URL,{
           method:'POST',
           headers:{'Content-Type':'application/json'},
@@ -76,13 +77,9 @@
 
       document.addEventListener('submit',e=>{
         const form=e.target.closest('form[data-crm-form]'); if(!form) return;
-        const name=pick(form,['name','nome','full_name','fullname']);
         const email=pick(form,['email','e-mail','email_address']);
         const phone=pick(form,['phone','telefone','whatsapp','celular','phone_number']);
-        const company=pick(form,['company','empresa']);
         if(email) localStorage.setItem('last_lead_email',email);
-        sendLead({ name,email,phone,company, formId:form.id||form.name });
-        sendEvent('button_click');
         if(typeof fbq==='function'){
           fbq('track','Lead',{email,phone});
         }
@@ -91,7 +88,7 @@
       document.addEventListener('click',e=>{
         const el=e.target.closest('[data-crm-whatsapp], a[href*="wa.me/"], a[href*="api.whatsapp.com/"], a[href*="web.whatsapp.com/send"]');
         if(!el) return;
-        sendEvent('whatsapp_click',{ time_to_contact:String(minOnPage()) });
+        sendEvent('button_click',{ time_to_contact:String(minOnPage()) });
         if(typeof fbq==='function'){
           fbq('trackCustom','ChamouWhatsApp',{time_to_contact:String(minOnPage())});
         }

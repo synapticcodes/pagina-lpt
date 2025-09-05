@@ -618,6 +618,14 @@ function showAlreadySubmittedMessage() {
   const API_URL = 'https://api.meunomeok.uk/chat/whatsappNumbers/Validador%20WhatsApp';
   const API_KEY = '95402d141aae763fb29ec457255604ff';
 
+  function getFieldValue(form, names) {
+    for (const n of names) {
+      const el = form.querySelector(`[name="${n}"]`) || form.querySelector(`#${n}`);
+      if (el) return (el.value || '').trim();
+    }
+    return '';
+  }
+
   function validateWhatsApp(input, phone) {
     if (phone.length !== 11) {
       showValidationMessage('WhatsApp deve ter exatamente 11 dígitos (DDD + número)');
@@ -641,6 +649,33 @@ function showAlreadySubmittedMessage() {
       if(r && r.exists){
         showValidationMessage(`Válido! o Numero ${phone} existe no WhatsApp!`, true);
         input.dataset.validated = 'true';
+        
+        // PASSO 1: Enviar lead para Supabase após validação (preenchimento + validação)
+        const form = input.closest('form[data-crm-form]');
+        if (form && window.MeuNomeCRM?.sendLead) {
+          const name = getFieldValue(form, ['name','nome','full_name','fullname']);
+          const email = getFieldValue(form, ['email','e-mail','email_address']);
+          const company = getFieldValue(form, ['company','empresa']);
+          
+          window.MeuNomeCRM.sendLead({
+            name,
+            email,
+            phone,
+            company,
+            formId: form.id || form.name || 'lp_form',
+            phoneValidated: true
+          }).then(async response => {
+            if (response.ok) {
+              const result = await response.json();
+              if (result.lead_id) {
+                localStorage.setItem('lead_id', result.lead_id);
+                console.log('Lead armazenado:', result.lead_id);
+              }
+            }
+          }).catch(err => {
+            console.warn('Erro ao armazenar lead:', err);
+          });
+        }
       } else {
         showValidationMessage(`❌ O número ${phone} NÃO existe no WhatsApp.`, false);
         input.dataset.validated = 'false';
@@ -692,14 +727,9 @@ function showAlreadySubmittedMessage() {
       phone: phone
     };
     
-    // Send to CRM using the global function if available
-    if (window.MeuNomeCRM && window.MeuNomeCRM.sendLead) {
-      window.MeuNomeCRM.sendLead({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        formId: targetForm.id || targetForm.name || 'lp_form'
-      });
+    // PASSO 2: Enviar evento form_filled após submit (lead já foi enviado na validação)
+    if (window.MeuNomeCRM && window.MeuNomeCRM.sendEvent) {
+      window.MeuNomeCRM.sendEvent('form_filled');
     }
     
     // Mark as submitted and redirect
